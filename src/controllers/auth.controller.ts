@@ -80,6 +80,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<v
       select: {
         id: true,
         name: true,
+        password: true,
         email: true,
         role: true,
         bio: true,

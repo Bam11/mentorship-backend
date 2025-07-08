@@ -14,6 +14,11 @@ import {
   getFilteredMentors,
   getMentorById,
   updateProfile,
+  getMentorSessions,
+  getMenteeSessions,
+  getSentRequests,
+  getUserById,
+  addMentorComment,
   setAvailability,
   getAllMatches,       
   getSessionStats,     
@@ -30,16 +35,25 @@ router.post('/login', loginUser);
 //  Profile
 router.get('/me', verifyToken, getUserProfile);
 router.put('/users/me/profile', verifyToken, updateProfile);
+// User profile by ID
+router.get('/users/:id', verifyToken, getUserById);
 
 //  Mentor discovery
 router.get('/mentors', getAllMentors);
 router.get('/mentors/filter', getFilteredMentors);
 router.get('/mentors/:id', getMentorById);
 
+//Additional session routes
+router.get('/sessions/mentor', verifyToken, getMentorSessions);
+router.get('/sessions/mentee', verifyToken, getMenteeSessions);
+
+
 //  Session requests
 router.post('/request-session', verifyToken, requestSession);
 router.get('/mentor/requests', verifyToken, getMentorRequests);
 router.patch('/mentor/requests/:id', verifyToken, respondToRequest);
+router.get('/requests/sent', verifyToken, getSentRequests);
+router.post('/sessions/:id/comment', verifyToken, addMentorComment);
 
 //  Availability
 router.post('/mentor/availability', verifyToken, setAvailability);
