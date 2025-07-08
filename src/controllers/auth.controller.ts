@@ -125,6 +125,37 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
+//Get another user profile by id
+export const getUserById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        bio: true,
+        skills: true,
+        goals: true,
+        industry: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Get user by ID error:', error);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+};
 
 // Get all mentors
 export const getAllMentors = async (_req: Request, res: Response): Promise<void> => {
@@ -364,6 +395,84 @@ export const submitFeedback = async (req: AuthRequest, res: Response): Promise<v
     res.status(500).json({ message: 'Failed to submit feedback' });
   }
 };
+
+export const getSentRequests = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'MENTEE') {
+      res.status(403).json({ message: 'Only mentees can view sent requests' });
+      return;
+    }
+
+    const requests = await prisma.sessionRequest.findMany({
+      where: { menteeId: req.user.userId },
+      include: {
+        mentor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    res.json({ requests });
+  } catch (error) {
+    console.error('Sent requests error:', error);
+    res.status(500).json({ message: 'Failed to fetch sent requests' });
+  }
+};
+
+// Get all sessions for the mentee
+export const getMenteeSessions = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'MENTEE') {
+      res.status(403).json({ message: 'Only mentees can view this' });
+      return;
+    }
+
+    const sessions = await prisma.sessionRequest.findMany({
+      where: {
+        menteeId: req.user.userId,
+        status: 'accepted',
+      },
+      include: {
+        mentor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    res.json({ sessions });
+  } catch (error) {
+    console.error('Mentee sessions error:', error);
+    res.status(500).json({ message: 'Failed to fetch sessions' });
+  }
+};
+
+// Get all sessions for the mentor
+export const getMentorSessions = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'MENTOR') {
+      res.status(403).json({ message: 'Only mentors can view this' });
+      return;
+    }
+
+    const sessions = await prisma.sessionRequest.findMany({
+      where: {
+        mentorId: req.user.userId,
+        status: 'accepted',
+      },
+      include: {
+        mentee: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    res.json({ sessions });
+  } catch (error) {
+    console.error('Mentor sessions error:', error);
+    res.status(500).json({ message: 'Failed to fetch sessions' });
+  }
+};
+
 
 // Mentor adds comment after session
 export const addMentorComment = async (req: AuthRequest, res: Response): Promise<void> => {

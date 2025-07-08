@@ -16,10 +16,10 @@ app.use('/protected', protectedRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-  res.send('Mentorship API is live ✅');
+  res.send('Mentorship API is live');
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
