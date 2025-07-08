@@ -8,12 +8,15 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
 //  Register
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, role, bio, skills, goals, industry } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
+    if (existingUser) {
+      res.status(400).json({ message: 'User already exists' });
+      return;
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -30,37 +33,45 @@ export const registerUser = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(201).json({ message: 'User registered successfully', user: newUser });
+    res.status(201).json({ message: 'User registered successfully', user: newUser });
   } catch (error: any) {
     console.error("Registration Error:", error.message || error);
-    return res.status(500).json({ message: 'Registration failed' });
+    res.status(500).json({ message: 'Registration failed' });
   }
 };
 
+
 // Login
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) {
+      res.status(400).json({ message: 'Invalid credentials' });
+      return;
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isMatch) {
+      res.status(400).json({ message: 'Invalid credentials' });
+      return;
+    }
 
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
       expiresIn: '1d',
     });
 
-    return res.status(200).json({ token, user });
+    res.status(200).json({ token, user });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Login failed' });
+    res.status(500).json({ message: 'Login failed' });
   }
 };
 
+
 // Get logged-in user profile
-export const getUserProfile = async (req: AuthRequest, res: Response) => {
+export const getUserProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
 
@@ -79,17 +90,21 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
 
-    return res.json({ user });
+    res.json({ user });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Something went wrong' });
+    res.status(500).json({ message: 'Something went wrong' });
   }
 };
 
+
 // Update profile
-export const updateProfile = async (req: AuthRequest, res: Response) => {
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
     const { bio, skills, goals, industry } = req.body;
@@ -103,15 +118,16 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.status(200).json({ message: 'Profile updated', user: updatedUser });
+    res.status(200).json({ message: 'Profile updated', user: updatedUser });
   } catch (error) {
     console.error('Update profile error:', error);
-    return res.status(500).json({ message: 'Failed to update profile' });
+    res.status(500).json({ message: 'Failed to update profile' });
   }
 };
 
+
 // Get all mentors
-export const getAllMentors = async (_req: Request, res: Response) => {
+export const getAllMentors = async (_req: Request, res: Response): Promise<void> => {
   try {
     const mentors = await prisma.user.findMany({
       where: { role: 'MENTOR' },
@@ -126,15 +142,16 @@ export const getAllMentors = async (_req: Request, res: Response) => {
       },
     });
 
-    return res.json({ mentors });
+    res.json({ mentors });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to fetch mentors' });
+    res.status(500).json({ message: 'Failed to fetch mentors' });
   }
 };
 
+
 //  Get filtered mentors (by skill, industry)
-export const getFilteredMentors = async (req: Request, res: Response) => {
+export const getFilteredMentors = async (req: Request, res: Response): Promise<void> => {
   try {
     const skill = req.query.skill as string;
     const industry = req.query.industry as string;
@@ -156,15 +173,15 @@ export const getFilteredMentors = async (req: Request, res: Response) => {
       }
     });
 
-    return res.json({ mentors });
+    res.json({ mentors });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to filter mentors' });
+    res.status(500).json({ message: 'Failed to filter mentors' });
   }
 };
 
 //  Get mentor by ID
-export const getMentorById = async (req: Request, res: Response) => {
+export const getMentorById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -183,24 +200,26 @@ export const getMentorById = async (req: Request, res: Response) => {
     });
 
     if (!mentor || mentor.role !== 'MENTOR') {
-      return res.status(404).json({ message: 'Mentor not found' });
+      res.status(404).json({ message: 'Mentor not found' });
+      return;
     }
 
-    return res.status(200).json({ mentor });
+    res.status(200).json({ mentor });
   } catch (error) {
     console.error('Get mentor error:', error);
-    return res.status(500).json({ message: 'Failed to fetch mentor profile' });
+    res.status(500).json({ message: 'Failed to fetch mentor profile' });
   }
 };
 
 //  Mentee requests session
-export const requestSession = async (req: AuthRequest, res: Response) => {
+export const requestSession = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { mentorId, topic } = req.body;
     const menteeId = req.user?.userId;
 
     if (!mentorId || !topic) {
-      return res.status(400).json({ message: 'Mentor ID and topic are required' });
+      res.status(400).json({ message: 'Mentor ID and topic are required' });
+      return;
     }
 
     const session = await prisma.sessionRequest.create({
@@ -211,18 +230,19 @@ export const requestSession = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.status(201).json({ message: 'Session request sent', session });
+    res.status(201).json({ message: 'Session request sent', session });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to send request' });
+    res.status(500).json({ message: 'Failed to send request' });
   }
 };
 
 // Mentor views incoming requests
-export const getMentorRequests = async (req: AuthRequest, res: Response) => {
+export const getMentorRequests = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'MENTOR') {
-      return res.status(403).json({ message: 'Access denied. Mentors only.' });
+      res.status(403).json({ message: 'Access denied. Mentors only.' });
+      return;
     }
 
     const mentorId = req.user.userId;
@@ -243,30 +263,33 @@ export const getMentorRequests = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.json({ requests });
+    res.json({ requests });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to fetch session requests' });
+    res.status(500).json({ message: 'Failed to fetch session requests' });
   }
 };
 
 // Mentor responds to session request (accept/reject)
-export const respondToRequest = async (req: AuthRequest, res: Response) => {
+export const respondToRequest = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
     if (req.user?.role !== 'MENTOR') {
-      return res.status(403).json({ message: 'Mentors only' });
+      res.status(403).json({ message: 'Mentors only' });
+      return;
     }
 
     if (!['accepted', 'rejected'].includes(status)) {
-      return res.status(400).json({ message: 'Status must be accepted or rejected' });
+      res.status(400).json({ message: 'Status must be accepted or rejected' });
+      return;
     }
 
     const request = await prisma.sessionRequest.findUnique({ where: { id } });
     if (!request || request.mentorId !== req.user.userId) {
-      return res.status(404).json({ message: 'Session not found or unauthorized' });
+      res.status(404).json({ message: 'Session not found or unauthorized' });
+      return;
     }
 
     const updated = await prisma.sessionRequest.update({
@@ -274,21 +297,22 @@ export const respondToRequest = async (req: AuthRequest, res: Response) => {
       data: { status },
     });
 
-    return res.json({ message: `Session ${status}`, request: updated });
+    res.json({ message: `Session ${status}`, request: updated });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to update session status' });
+    res.status(500).json({ message: 'Failed to update session status' });
   }
 };
 
 //  Mentor sets availability
-export const setAvailability = async (req: AuthRequest, res: Response) => {
+export const setAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const mentorId = req.user?.userId;
     const { day, startTime, endTime } = req.body;
 
     if (req.user?.role !== 'MENTOR') {
-      return res.status(403).json({ message: 'Only mentors can set availability' });
+      res.status(403).json({ message: 'Only mentors can set availability' });
+      return;
     }
 
     const newSlot = await prisma.availability.create({
@@ -300,30 +324,33 @@ export const setAvailability = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.status(201).json({ message: 'Availability set', slot: newSlot });
+    res.status(201).json({ message: 'Availability set', slot: newSlot });
   } catch (error) {
     console.error('Set availability error:', error);
-    return res.status(500).json({ message: 'Failed to set availability' });
+    res.status(500).json({ message: 'Failed to set availability' });
   }
 };
 
 //  Mentee submits feedback and rating
-export const submitFeedback = async (req: AuthRequest, res: Response) => {
+export const submitFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { feedback, rating } = req.body;
 
     if (req.user?.role !== 'MENTEE') {
-      return res.status(403).json({ message: 'Only mentees can submit feedback' });
+      res.status(403).json({ message: 'Only mentees can submit feedback' });
+      return;
     }
 
     if (!feedback || typeof rating !== 'number' || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: 'Feedback and rating (1–5) are required' });
+      res.status(400).json({ message: 'Feedback and rating (1–5) are required' });
+      return;
     }
 
     const session = await prisma.sessionRequest.findUnique({ where: { id } });
     if (!session || session.menteeId !== req.user.userId) {
-      return res.status(404).json({ message: 'Session not found or unauthorized' });
+      res.status(404).json({ message: 'Session not found or unauthorized' });
+      return;
     }
 
     const updated = await prisma.sessionRequest.update({
@@ -331,26 +358,28 @@ export const submitFeedback = async (req: AuthRequest, res: Response) => {
       data: { feedback, rating },
     });
 
-    return res.json({ message: 'Feedback submitted', session: updated });
+    res.json({ message: 'Feedback submitted', session: updated });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to submit feedback' });
+    res.status(500).json({ message: 'Failed to submit feedback' });
   }
 };
 
 // Mentor adds comment after session
-export const addMentorComment = async (req: AuthRequest, res: Response) => {
+export const addMentorComment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { mentorComment } = req.body;
 
     if (req.user?.role !== 'MENTOR') {
-      return res.status(403).json({ message: 'Only mentors can comment' });
+      res.status(403).json({ message: 'Only mentors can comment' });
+      return;
     }
 
     const session = await prisma.sessionRequest.findUnique({ where: { id } });
     if (!session || session.mentorId !== req.user.userId) {
-      return res.status(404).json({ message: 'Session not found or unauthorized' });
+      res.status(404).json({ message: 'Session not found or unauthorized' });
+      return;
     }
 
     const updated = await prisma.sessionRequest.update({
@@ -358,18 +387,19 @@ export const addMentorComment = async (req: AuthRequest, res: Response) => {
       data: { mentorComment },
     });
 
-    return res.json({ message: 'Comment submitted', session: updated });
+    res.json({ message: 'Comment submitted', session: updated });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to add comment' });
+    res.status(500).json({ message: 'Failed to add comment' });
   }
 };
 
 // Admin: view all users
-export const getAllUsers = async (req: AuthRequest, res: Response) => {
+export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admins only' });
+      res.status(403).json({ message: 'Admins only' });
+      return;
     }
 
     const users = await prisma.user.findMany({
@@ -386,25 +416,27 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.json({ users });
+    res.json({ users });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to fetch users' });
+    res.status(500).json({ message: 'Failed to fetch users' });
   }
 };
 
 // Admin: update user role
-export const updateUserRole = async (req: AuthRequest, res: Response) => {
+export const updateUserRole = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admins only' });
+      res.status(403).json({ message: 'Admins only' });
+      return;
     }
 
     const { id } = req.params;
     const { role } = req.body;
 
     if (!['ADMIN', 'MENTOR', 'MENTEE'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role' });
+      res.status(400).json({ message: 'Invalid role' });
+      return;
     }
 
     const updated = await prisma.user.update({
@@ -412,36 +444,38 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
       data: { role },
     });
 
-    return res.json({ message: 'User role updated', user: updated });
+    res.json({ message: 'User role updated', user: updated });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to update role' });
+    res.status(500).json({ message: 'Failed to update role' });
   }
 };
 
 //  Admin: delete user
-export const deleteUser = async (req: AuthRequest, res: Response) => {
+export const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admins only' });
+      res.status(403).json({ message: 'Admins only' });
+      return;
     }
 
     const { id } = req.params;
 
     await prisma.user.delete({ where: { id } });
 
-    return res.json({ message: 'User deleted successfully' });
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Failed to delete user' });
+    res.status(500).json({ message: 'Failed to delete user' });
   }
 };
 
 // Admin views accepted matches
-export const getAllMatches = async (req: AuthRequest, res: Response) => {
+export const getAllMatches = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admins only' });
+      res.status(403).json({ message: 'Admins only' });
+      return;
     }
 
     const matches = await prisma.sessionRequest.findMany({
@@ -456,18 +490,19 @@ export const getAllMatches = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.status(200).json({ matches });
+    res.status(200).json({ matches });
   } catch (error) {
     console.error('Admin get matches error:', error);
-    return res.status(500).json({ message: 'Failed to fetch matches' });
+    res.status(500).json({ message: 'Failed to fetch matches' });
   }
 };
 
 // Admin sees session stats (total sessions)
-export const getSessionStats = async (req: AuthRequest, res: Response) => {
+export const getSessionStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admins only' });
+      res.status(403).json({ message: 'Admins only' });
+      return;
     }
 
     const total = await prisma.sessionRequest.count();
@@ -475,25 +510,27 @@ export const getSessionStats = async (req: AuthRequest, res: Response) => {
     const rejected = await prisma.sessionRequest.count({ where: { status: 'rejected' } });
     const pending = await prisma.sessionRequest.count({ where: { status: 'pending' } });
 
-    return res.json({ total, accepted, rejected, pending });
+    res.json({ total, accepted, rejected, pending });
   } catch (error) {
     console.error('Admin session stats error:', error);
-    return res.status(500).json({ message: 'Failed to fetch session stats' });
+    res.status(500).json({ message: 'Failed to fetch session stats' });
   }
 };
 
 
 // Admin assigns mentor to mentee manually
-export const assignMentor = async (req: AuthRequest, res: Response) => {
+export const assignMentor = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admins only' });
+      res.status(403).json({ message: 'Admins only' });
+      return;
     }
 
     const { mentorId, menteeId, topic } = req.body;
 
     if (!mentorId || !menteeId || !topic) {
-      return res.status(400).json({ message: 'mentorId, menteeId, and topic are required' });
+      res.status(400).json({ message: 'mentorId, menteeId, and topic are required' });
+      return;
     }
 
     const session = await prisma.sessionRequest.create({
@@ -505,10 +542,10 @@ export const assignMentor = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.status(201).json({ message: 'Mentor assigned successfully', session });
+    res.status(201).json({ message: 'Mentor assigned successfully', session });
   } catch (error) {
     console.error('Assign mentor error:', error);
-    return res.status(500).json({ message: 'Failed to assign mentor' });
+    res.status(500).json({ message: 'Failed to assign mentor' });
   }
 };
 
