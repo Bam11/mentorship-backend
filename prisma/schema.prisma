@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MENTOR
+  MENTEE
+}
+
+model User {
+  id             String           @id @default(uuid())
+  name           String
+  email          String           @unique
+  password       String
+  role           Role
+  bio            String?
+  skills         String[]
+  goals          String?
+  industry       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  menteeRequests SessionRequest[] @relation("MenteeRequests")
+  mentorRequests SessionRequest[] @relation("MentorRequests")
+  availability   Availability[]   @relation("MentorAvailability")
+}
+
+model SessionRequest {
+  id             String   @id @default(uuid())
+  menteeId       String
+  mentorId       String
+  topic          String
+  status         String   @default("pending")
+  feedback       String?
+  rating         Int?
+  mentorComment  String?
+  createdAt      DateTime @default(now())
+
+  mentee         User     @relation("MenteeRequests", fields: [menteeId], references: [id])
+  mentor         User     @relation("MentorRequests", fields: [mentorId], references: [id])
+}
+
+model Availability {
+  id        String   @id @default(uuid())
+  mentorId  String
+  day       String
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  
+  mentor    User     @relation("MentorAvailability", fields: [mentorId], references: [id])
+}
