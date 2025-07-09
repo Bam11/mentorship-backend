@@ -75,12 +75,16 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.userId;
 
+    if (!userId) {
+      res.status(401).json({ message: 'User ID missing in request' });
+      return;
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         name: true,
-        password: true,
         email: true,
         role: true,
         bio: true,
@@ -249,6 +253,11 @@ export const requestSession = async (req: AuthRequest, res: Response): Promise<v
     const { mentorId, topic } = req.body;
     const menteeId = req.user?.userId;
 
+    if (!menteeId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+
     if (!mentorId || !topic) {
       res.status(400).json({ message: 'Mentor ID and topic are required' });
       return;
@@ -257,17 +266,18 @@ export const requestSession = async (req: AuthRequest, res: Response): Promise<v
     const session = await prisma.sessionRequest.create({
       data: {
         mentorId,
-        menteeId,
+        menteeId,  
         topic,
       },
     });
 
     res.status(201).json({ message: 'Session request sent', session });
   } catch (error) {
-    console.error(error);
+    console.error('Request session error:', error);
     res.status(500).json({ message: 'Failed to send request' });
   }
 };
+
 
 // Mentor views incoming requests
 export const getMentorRequests = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -347,9 +357,14 @@ export const setAvailability = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
+    if (!mentorId) {
+      res.status(400).json({ message: 'Mentor ID not found in token' });
+      return;
+    }
+
     const newSlot = await prisma.availability.create({
       data: {
-        mentorId,
+        mentorId, // now safe to use because it's guaranteed to be a string
         day,
         startTime,
         endTime,
@@ -362,6 +377,7 @@ export const setAvailability = async (req: AuthRequest, res: Response): Promise<
     res.status(500).json({ message: 'Failed to set availability' });
   }
 };
+
 
 //  Mentee submits feedback and rating
 export const submitFeedback = async (req: AuthRequest, res: Response): Promise<void> => {

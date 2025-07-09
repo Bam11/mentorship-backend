@@ -14,7 +14,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/protected', protectedRoutes);
 
-// Health check
+// 
 app.get('/', (req, res) => {
   res.send('Mentorship API is live');
 });

@@ -33,8 +33,9 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 
 //  Profile
-router.get('/me', verifyToken, getUserProfile);
 router.put('/users/me/profile', verifyToken, updateProfile);
+router.get('/users/me', verifyToken, getUserProfile);
+
 // User profile by ID
 router.get('/users/:id', verifyToken, getUserById);
 
@@ -49,9 +50,9 @@ router.get('/sessions/mentee', verifyToken, getMenteeSessions);
 
 
 //  Session requests
-router.post('/request-session', verifyToken, requestSession);
-router.get('/mentor/requests', verifyToken, getMentorRequests);
-router.patch('/mentor/requests/:id', verifyToken, respondToRequest);
+router.post('/request', verifyToken, requestSession);
+router.get('/requests/received', verifyToken, getMentorRequests);
+router.put('/requests/:id', verifyToken, respondToRequest);
 router.get('/requests/sent', verifyToken, getSentRequests);
 router.post('/sessions/:id/comment', verifyToken, addMentorComment);
 
@@ -59,11 +60,11 @@ router.post('/sessions/:id/comment', verifyToken, addMentorComment);
 router.post('/mentor/availability', verifyToken, setAvailability);
 
 //  Feedback
-router.post('/sessions/:id/feedback', verifyToken, submitFeedback);
+router.put('/sessions/:id/feedback', verifyToken, submitFeedback);
 
 //  Admin endpoints
 router.get('/admin/users', verifyToken, getAllUsers);
-router.patch('/admin/users/:id/role', verifyToken, updateUserRole);
+router.put('/admin/users/:id/role', verifyToken, updateUserRole);
 router.delete('/admin/users/:id', verifyToken, deleteUser);
 
 // Admin Routes
